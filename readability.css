@@ -1,0 +1,28 @@
+/* Improve readability of prompt texts and footer */
+
+/* Kana and Romaji badges for high contrast over background */
+.prompt { text-align: center; }
+.kana, .romaji {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,0.08);
+  background: rgba(255,255,255,0.96);
+  text-shadow: none !important;
+}
+.kana { color: #0f172a !important; }
+.romaji {
+  color: #0f172a !important;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+}
+
+/* Footer text a bit brighter for contrast */
+.footer { color: #e5e7eb !important; }
+
+/* Difficulty label and buttons: higher contrast */
+.controls .difficulty { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.92); border: 1px solid #e5e7eb; border-radius: 12px; padding: 6px; }
+.controls .difficulty .modes-label { color: #0f172a !important; font-weight: 900; letter-spacing: 0.02em; padding: 0 8px; }
+.controls .difficulty .seg { background: #ffffff !important; color: #0f172a !important; border: 1px solid #cbd5e1 !important; border-radius: 10px !important; padding: 10px 14px !important; font-weight: 900 !important; box-shadow: 0 1px 0 rgba(0,0,0,0.02); }
+.controls .difficulty .seg:hover { background: #eef2ff !important; }
+.controls .difficulty .seg.on { background: #2563eb !important; color: #ffffff !important; border-color: #1d4ed8 !important; box-shadow: inset 0 0 0 2px rgba(37,99,235,0.15) !important; }

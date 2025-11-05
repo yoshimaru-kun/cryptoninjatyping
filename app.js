@@ -59,7 +59,9 @@
   const btnCloseResults = document.getElementById('closeResults');
   const radioHepburn = document.getElementById('romanHepburn');
   const radioKunrei = document.getElementById('romanKunrei');
-  // BGM UI removed
+  // BGM UI (placeholder)
+  const bgmSelect = document.getElementById('bgmSelect');
+  const bgmVolume = document.getElementById('bgmVolume');
   const diffButtons = Array.from(document.querySelectorAll('.difficulty .seg'));
 
   // ===== State =====
@@ -297,7 +299,26 @@
   if (radioHepburn) radioHepburn.addEventListener('change', applySchemeFromUI);
   if (radioKunrei) radioKunrei.addEventListener('change', applySchemeFromUI);
 
-  // BGM playback removed
+  // BGM select/volume (placeholder: persist only)
+  (function initBgmUI(){
+    if (!bgmSelect || !bgmVolume) return;
+    try {
+      const savedTrack = localStorage.getItem('bgm.track') || 'none';
+      const savedVol = parseFloat(localStorage.getItem('bgm.volume') || '0.5');
+      bgmSelect.value = savedTrack;
+      if (!Number.isFinite(savedVol)) { throw new Error('invalid vol'); }
+      bgmVolume.value = String(savedVol);
+    } catch(_) {
+      try { bgmSelect.value = 'none'; } catch(_){}
+      try { bgmVolume.value = '0.5'; } catch(_){}
+    }
+    bgmSelect.addEventListener('change', () => {
+      try { localStorage.setItem('bgm.track', bgmSelect.value); } catch(_){}
+    });
+    bgmVolume.addEventListener('input', () => {
+      try { localStorage.setItem('bgm.volume', bgmVolume.value); } catch(_){}
+    });
+  })();
 
   // ===== SFX using audio files in assets/audio =====
   const sfx = (()=>{
