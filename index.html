@@ -8,7 +8,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="bgm.css" />`n    <link rel="stylesheet" href="readability.css" />
+    <link rel="stylesheet" href="bgm.css" />
+    <link rel="stylesheet" href="roman.css" />
+    <link rel="stylesheet" href="readability.css" />
     <style>
       /* Difficulty buttons style to match modes */
       .difficulty .seg { background: transparent; color: #0f172a; padding: 10px 14px; border-radius: 0; border: 0; font-weight: 700; }
@@ -110,6 +112,21 @@
           <span>入力方式:</span>
           <label style="margin-left:8px;"><input type="radio" name="romanization" id="romanHepburn" value="hepburn" checked> ヘボン式</label>
           <label style="margin-left:8px;"><input type="radio" name="romanization" id="romanKunrei" value="kunrei"> 訓令式</label>
+          <button id="romanHelpBtn" class="ghost" aria-expanded="false" aria-controls="romanHelp" title="ローマ字方式の説明">？</button>
+        </div>
+        <div id="romanHelp" class="roman-help hidden" role="dialog" aria-modal="false" aria-label="ローマ字方式の説明">
+          <div class="roman-help-title">ヘボン式と訓令式のちがい</div>
+          <ul>
+            <li>し: ヘボン式 <strong>shi</strong> / 訓令式 <strong>si</strong></li>
+            <li>ち: ヘボン式 <strong>chi</strong> / 訓令式 <strong>ti</strong></li>
+            <li>つ: ヘボン式 <strong>tsu</strong> / 訓令式 <strong>tu</strong></li>
+            <li>ふ: ヘボン式 <strong>fu</strong> / 訓令式 <strong>hu</strong></li>
+            <li>しゃ: ヘボン式 <strong>sha</strong> / 訓令式 <strong>sya</strong></li>
+            <li>じゅ: ヘボン式 <strong>ju</strong> / 訓令式 <strong>zyu</strong></li>
+            <li>促音「っ」は次の子音を重ねます（例: <strong>tt</strong>）。</li>
+            <li>「ん」は <strong>n</strong>（母音の前は <strong>nn</strong> でも可）。</li>
+          </ul>
+          <div class="roman-help-actions"><button id="romanHelpClose" class="primary action">閉じる</button></div>
         </div>
       </section>
 

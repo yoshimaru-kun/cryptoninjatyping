@@ -56,9 +56,16 @@
   const customSecondsInput = document.getElementById('customSeconds');
   const setCustomBtn = document.getElementById('setCustomBtn');
   const btnGoRestart = document.getElementById('goRestartBtn');
+  // Will be created dynamically on game over overlay
+  let btnContinue = null;
+  let btnStartOver = null;
+  let elContinuesLeft = null;
   const btnCloseResults = document.getElementById('closeResults');
   const radioHepburn = document.getElementById('romanHepburn');
   const radioKunrei = document.getElementById('romanKunrei');
+  const btnRomanHelp = document.getElementById('romanHelpBtn');
+  const boxRomanHelp = document.getElementById('romanHelp');
+  const btnRomanHelpClose = document.getElementById('romanHelpClose');
   // BGM UI (placeholder)
   const bgmSelect = document.getElementById('bgmSelect');
   const bgmVolume = document.getElementById('bgmVolume');
@@ -172,12 +179,15 @@
   }
 
   // ===== Game loop =====
-  function startGame(){
+  function startGame(continueMode=false){
     if (running) return;
     running = true;
     try { sfx.play('start'); } catch(_){ }
     if (window.__battle && window.__battle.player){ limitSeconds = null; timeLeft = Infinity; }
-    score=0; misses=0; typedTotal=0; typedCorrect=0; levelIndex=0; timeLeft = (limitSeconds==null?Infinity:limitSeconds);
+    if (!continueMode){
+      score=0; misses=0; typedTotal=0; typedCorrect=0; levelIndex=0;
+    }
+    timeLeft = (limitSeconds==null?Infinity:limitSeconds);
     setStats(); setTimeUI(); setLevelUI(); rebuildPool(); setPrompt(pickWord());
     elInput.disabled = false; elInput.focus();
     btnStart.disabled = true; btnRestart.disabled = false;
@@ -214,7 +224,7 @@
             updateHpUI();
           }
         } catch(_){}
-        startGame();
+        startGame(true);
         return;
       } else {
         // 3回目の敗北: 最初から（キャラ未選択状態）
@@ -225,7 +235,7 @@
         return;
       }
     }
-    startGame();
+    startGame(false);
   }
 
   // ===== Input =====
@@ -295,9 +305,44 @@
   setCustomBtn.addEventListener('click', ()=>{ if (running) return; const v = parseInt(customSecondsInput.value,10); if (Number.isFinite(v)&&v>0){ limitSeconds = Math.min(9999, Math.floor(v)); elModeLabel.textContent = limitSeconds+'秒チャレンジ'; timeLeft=limitSeconds; setTimeUI(); }});
 
   // ===== Romanization controls =====
-  function applySchemeFromUI(){ romanScheme = (radioKunrei && radioKunrei.checked) ? 'kunrei':'hepburn'; localStorage.setItem('romanScheme', romanScheme); if (!running && currentBase) setPrompt(currentBase); }
+  const labelHep = radioHepburn ? radioHepburn.closest('label') : null;
+  const labelKun = radioKunrei ? radioKunrei.closest('label') : null;
+  function updateRomanUI(){
+    try {
+      if (labelHep) labelHep.classList.toggle('on', romanScheme==='hepburn');
+      if (labelKun) labelKun.classList.toggle('on', romanScheme==='kunrei');
+    } catch(_){}
+  }
+  function applySchemeFromUI(){
+    romanScheme = (radioKunrei && radioKunrei.checked) ? 'kunrei':'hepburn';
+    localStorage.setItem('romanScheme', romanScheme);
+    updateRomanUI();
+    if (!running && currentBase) setPrompt(currentBase);
+  }
   if (radioHepburn) radioHepburn.addEventListener('change', applySchemeFromUI);
   if (radioKunrei) radioKunrei.addEventListener('change', applySchemeFromUI);
+  try {
+    if (radioHepburn) radioHepburn.checked = (romanScheme === 'hepburn');
+    if (radioKunrei) radioKunrei.checked = (romanScheme === 'kunrei');
+  } catch(_){}
+  updateRomanUI();
+
+  // Romanization help toggle
+  if (btnRomanHelp && boxRomanHelp){
+    btnRomanHelp.addEventListener('click', () => {
+      try {
+        const isHidden = boxRomanHelp.classList.contains('hidden');
+        boxRomanHelp.classList.toggle('hidden');
+        btnRomanHelp.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+      } catch(_){}
+    });
+  }
+  if (btnRomanHelpClose && boxRomanHelp){
+    btnRomanHelpClose.addEventListener('click', () => {
+      try { boxRomanHelp.classList.add('hidden'); if (btnRomanHelp) btnRomanHelp.setAttribute('aria-expanded','false'); } catch(_){}
+    });
+  }
+  // removed the top-right close button (X); close via ? toggle or the bottom button
 
   // BGM select/volume (playback + persist)
   (function initBgmUI(){
@@ -545,7 +590,7 @@
     let panel = document.getElementById('charSelect');
     if (!panel){ panel = document.createElement('div'); panel.id='charSelect'; panel.className='select-modal'; document.body.appendChild(panel); }
     const buttons = Object.values(CHARACTERS).map(c => (
-      `<button class="choice" data-id="${c.id}">`
+      `<button class="choice" data-id="${c.id}" title="ダブルクリックで開始">`
       + (c.img ? `<img alt="${c.name}" src="${encodeURI(c.img)}" style="width:120px;height:auto;display:block;margin:0 auto 6px;">` : '')
       + `<div class="ch-name">${c.name}</div>`
       + `<div class="ch-stats">HP ${c.maxHP} / ATK ${c.atk}</div>`
@@ -567,6 +612,19 @@
         panel.classList.add('hidden');
         startGame();
       }
+    };
+    panel.ondblclick = (e) => {
+      const btn = e.target.closest('.choice');
+      if (!btn) return;
+      const pick = btn.dataset.id;
+      if (!pick) return;
+      panel.querySelectorAll('.choice').forEach(b=>b.classList.toggle('selected', b===btn));
+      window.__battle.player = { ...CHARACTERS[pick] };
+      window.__battle.enemy = { ...pickRandomEnemyExcluding(pick) };
+      window.__battle.playerHp = window.__battle.player.maxHP;
+      window.__battle.enemyHp = window.__battle.enemy.maxHP;
+      panel.classList.add('hidden');
+      startGame();
     };
   }
   function startEnemyAttacks(){
@@ -607,7 +665,54 @@
     const overlay = document.getElementById('gameOverOverlay');
     const title = overlay ? overlay.querySelector('.gameover-title') : null;
     if (title) title.textContent = win ? 'VICTORY' : 'GAME OVER';
-    if (overlay) overlay.classList.remove('hidden');
+    // Build/refresh continue UI on the overlay
+    try {
+      if (overlay){
+        const card = overlay.querySelector('.gameover-card');
+        if (card){
+          // Hide old restart button if present
+          const old = card.querySelector('#goRestartBtn'); if (old) old.style.display = 'none';
+          // Ensure info
+          let info = card.querySelector('.gameover-info');
+          if (!info){
+            info = document.createElement('div');
+            info.className = 'gameover-info';
+            info.innerHTML = '残りコンテニュー回数: <strong id="continuesLeft">2</strong>';
+            const firstActions = card.querySelector('.gameover-actions');
+            if (firstActions) { card.insertBefore(info, firstActions); } else { card.appendChild(info); }
+          }
+          elContinuesLeft = card.querySelector('#continuesLeft');
+          // Ensure actions with two buttons
+          let actions = card.querySelector('.gameover-actions');
+          if (!actions){ actions = document.createElement('div'); actions.className = 'gameover-actions'; card.appendChild(actions); }
+          actions.innerHTML = '';
+          btnContinue = document.createElement('button'); btnContinue.id = 'continueBtn'; btnContinue.className = 'primary'; btnContinue.textContent = 'コンテニュー';
+          btnStartOver = document.createElement('button'); btnStartOver.id = 'startOverBtn'; btnStartOver.className = 'secondary'; btnStartOver.textContent = '最初から';
+          actions.appendChild(btnContinue); actions.appendChild(btnStartOver);
+
+          // Wire events
+          btnContinue.addEventListener('click', () => {
+            const left = Math.max(0, 2 - continuesUsed);
+            if (left <= 0) return;
+            try { overlay.classList.add('hidden'); } catch(_){}
+            restartGame(); // will consume a continue and set HP 50%
+          });
+          btnStartOver.addEventListener('click', () => {
+            continuesUsed = 0; lastResultWin = null;
+            try { window.__battle = { player:null, enemy:null, playerHp:0, enemyHp:0, enemyIntervalMs:getEnemyIntervalMs(), enemyTimer:null }; } catch(_){ }
+            try { overlay.classList.add('hidden'); } catch(_){}
+            // Return to ready state; user can press START to begin anew
+            try { elInput.disabled = true; btnStart.disabled = false; btnRestart.disabled = false; } catch(_){}
+          });
+
+          // Update counts and button state
+          const left = Math.max(0, 2 - continuesUsed);
+          if (elContinuesLeft) elContinuesLeft.textContent = String(left);
+          if (btnContinue) btnContinue.disabled = (left <= 0);
+        }
+        overlay.classList.remove('hidden');
+      }
+    } catch(_){ if (overlay) overlay.classList.remove('hidden'); }
   }
 
   // ===== Bind buttons =====
@@ -616,6 +721,7 @@
     startGame();
   });
   btnRestart.addEventListener('click', restartGame);
+  // Legacy restart button (hidden in overlay when continue UI is built)
   if (btnGoRestart) btnGoRestart.addEventListener('click', restartGame);
   if (btnCloseResults) btnCloseResults.addEventListener('click', restartGame);
 
