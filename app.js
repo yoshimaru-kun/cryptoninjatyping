@@ -299,25 +299,77 @@
   if (radioHepburn) radioHepburn.addEventListener('change', applySchemeFromUI);
   if (radioKunrei) radioKunrei.addEventListener('change', applySchemeFromUI);
 
-  // BGM select/volume (placeholder: persist only)
+  // BGM select/volume (playback + persist)
   (function initBgmUI(){
     if (!bgmSelect || !bgmVolume) return;
+
+    const BGM_TRACKS = {
+      dennou: 'assets/audio/bgm/電脳忍法帖.mp3',
+    };
+
+    let bgmAudio = null;
+    function disposeAudio(){
+      try { if (bgmAudio) { bgmAudio.pause(); } } catch(_){}
+      bgmAudio = null;
+    }
+    function createAudioFor(track){
+      disposeAudio();
+      if (!track || track === 'none') return;
+      const src = BGM_TRACKS[track];
+      if (!src) return;
+      try {
+        bgmAudio = new Audio(encodeURI(src));
+        bgmAudio.loop = true;
+        bgmAudio.preload = 'auto';
+        const vol = parseFloat(bgmVolume.value || '0.5');
+        bgmAudio.volume = Number.isFinite(vol) ? vol : 0.5;
+      } catch(_) { bgmAudio = null; }
+    }
+    function tryPlay(){
+      if (!bgmAudio) return;
+      try {
+        const vol = parseFloat(bgmVolume.value || '0.5');
+        bgmAudio.volume = Number.isFinite(vol) ? vol : 0.5;
+        bgmAudio.play().catch(()=>{});
+      } catch(_){}
+    }
+
+    // Load saved state
     try {
-      const savedTrack = localStorage.getItem('bgm.track') || 'none';
+      const savedTrackRaw = localStorage.getItem('bgm.track') || 'none';
+      const savedTrack = (savedTrackRaw !== 'none' && !BGM_TRACKS[savedTrackRaw]) ? 'none' : savedTrackRaw;
       const savedVol = parseFloat(localStorage.getItem('bgm.volume') || '0.5');
       bgmSelect.value = savedTrack;
       if (!Number.isFinite(savedVol)) { throw new Error('invalid vol'); }
       bgmVolume.value = String(savedVol);
+      if (savedTrack !== savedTrackRaw) {
+        try { localStorage.setItem('bgm.track', savedTrack); } catch(_){}
+      }
+      if (savedTrack && savedTrack !== 'none') {
+        createAudioFor(savedTrack);
+      }
     } catch(_) {
       try { bgmSelect.value = 'none'; } catch(_){}
       try { bgmVolume.value = '0.5'; } catch(_){}
     }
+
+    // Persist + apply on change
     bgmSelect.addEventListener('change', () => {
       try { localStorage.setItem('bgm.track', bgmSelect.value); } catch(_){}
+      createAudioFor(bgmSelect.value);
+      tryPlay();
     });
     bgmVolume.addEventListener('input', () => {
       try { localStorage.setItem('bgm.volume', bgmVolume.value); } catch(_){}
+      if (bgmAudio) {
+        const v = parseFloat(bgmVolume.value||'0.5');
+        bgmAudio.volume = Number.isFinite(v) ? v : 0.5;
+      }
     });
+
+    // Help autoplay policies: try starting after explicit clicks
+    try { if (btnStart) btnStart.addEventListener('click', tryPlay); } catch(_){}
+    try { if (btnRestart) btnRestart.addEventListener('click', tryPlay); } catch(_){}
   })();
 
   // ===== SFX using audio files in assets/audio =====
