@@ -726,5 +726,24 @@
   if (btnCloseResults) btnCloseResults.addEventListener('click', restartGame);
 
   // ===== Init =====
+  // Apply title and brighter text overrides
+  try {
+    document.title = 'クリプトニンジャバトルタイピング';
+    const _h1 = document.querySelector('.header h1');
+    if (_h1) _h1.textContent = 'クリプトニンジャバトルタイピング';
+    const css = [
+      '.kana{color:#fff!important;background:none!important;-webkit-background-clip:initial!important;background-clip:initial!important;text-shadow:0 4px 18px rgba(0,0,0,.6)!important;}',
+      '.romaji{color:#f8fafc!important;background:#000!important;padding:6px 10px!important;border-radius:8px!important;text-shadow:0 2px 12px rgba(0,0,0,.6)!important;}',
+      '.header h1{display:inline-block!important;position:relative!important;background:linear-gradient(90deg,#ff8bbb,#ffc58f,#fff4a8,#bbf7d0,#a5d8ff,#d8b4fe,#f9a8d4)!important;-webkit-background-clip:text!important;background-clip:text!important;color:transparent!important;-webkit-text-stroke:1.6px rgba(0,0,0,.55);text-shadow:0 1px 0 rgba(255,255,255,.4),0 2px 12px rgba(0,0,0,.55)!important;padding:4px 12px!important;border-radius:12px!important;}',
+      '.header h1::before{content:"";position:absolute;inset:-2px -8px;border-radius:14px;background:rgba(255,255,255,.6);box-shadow:0 2px 12px rgba(0,0,0,.35);z-index:-1;}',
+      '.time-text{color:#ffffff!important;}',
+      '.stats div{color:#f1f5f9!important;}',
+      '.stats span{color:#ffffff!important;}'
+    ].join('');
+    const style = document.createElement('style');
+    style.setAttribute('data-injected','brighten');
+    style.appendChild(document.createTextNode(css));
+    document.head.appendChild(style);
+  } catch(_){ }
   setStats(); setTimeUI(); setLevelUI();
 })();
