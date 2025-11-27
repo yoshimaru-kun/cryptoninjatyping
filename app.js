@@ -172,7 +172,7 @@
   function setPrompt(w){
     currentBase = w; current = { k:w.k, r: toScheme(w.r) };
     elKana.textContent = current.k;
-    elRomaji.textContent = current.r;
+    elRomaji.textContent = (current.r || '').toUpperCase();
     elInput.value = '';
     elInput.classList.remove('good','bad');
     elHint.textContent = 'ローマ字で入力してね';
@@ -236,6 +236,55 @@
       }
     }
     startGame(false);
+  }
+
+  // Force a full reset and start a new game immediately
+  function resetGameHard(){
+    if (timerId){ clearInterval(timerId); timerId=null; }
+    // Hide overlays if visible
+    try { const ov = document.getElementById('gameOverOverlay'); if (ov) ov.classList.add('hidden'); } catch(_){}
+    try { const res = document.getElementById('results'); if (res) res.classList.add('hidden'); } catch(_){}
+    running = false;
+    // Reset meta result/continues state
+    lastResultWin = null;
+    continuesUsed = 0;
+    // Reset core counters
+    score = 0; misses = 0; typedTotal = 0; typedCorrect = 0;
+    levelIndex = 0; level10Count = 0; missesThisWord = 0; perfectStreak = 0;
+    // Reset battle HP/enemy if player already chosen
+    try {
+      if (window.__battle && window.__battle.player){
+        const pid = window.__battle.player.id;
+        window.__battle.enemy = { ...pickRandomEnemyExcluding(pid) };
+        window.__battle.playerHp = window.__battle.player.maxHP;
+        window.__battle.enemyHp = window.__battle.enemy.maxHP;
+        updateSideFrames(); updateHpUI();
+      }
+    } catch(_){}
+    // Start fresh with current mode settings
+    startGame(false);
+  }
+
+  // Reset including character selection; return to select screen
+  function resetToCharacterSelect(){
+    if (timerId){ clearInterval(timerId); timerId=null; }
+    // Hide overlays if visible
+    try { const ov = document.getElementById('gameOverOverlay'); if (ov) ov.classList.add('hidden'); } catch(_){}
+    try { const res = document.getElementById('results'); if (res) res.classList.add('hidden'); } catch(_){}
+    running = false;
+    lastResultWin = null;
+    continuesUsed = 0;
+    // Reset core counters/UI
+    score = 0; misses = 0; typedTotal = 0; typedCorrect = 0;
+    levelIndex = 0; level10Count = 0; missesThisWord = 0; perfectStreak = 0;
+    setStats(); setTimeUI(); setLevelUI();
+    // Reset battle state fully (no player selected)
+    try { window.__battle = { player:null, enemy:null, playerHp:0, enemyHp:0, enemyIntervalMs:getEnemyIntervalMs(), enemyTimer:null }; } catch(_){}
+    try { updateSideFrames(); updateHpUI(); } catch(_){}
+    // Disable input until a character is selected and game starts
+    try { elInput.disabled = true; btnStart.disabled = false; btnRestart.disabled = false; } catch(_){}
+    // Open character select modal
+    openCharSelect();
   }
 
   // ===== Input =====
@@ -698,11 +747,9 @@
             restartGame(); // will consume a continue and set HP 50%
           });
           btnStartOver.addEventListener('click', () => {
-            continuesUsed = 0; lastResultWin = null;
-            try { window.__battle = { player:null, enemy:null, playerHp:0, enemyHp:0, enemyIntervalMs:getEnemyIntervalMs(), enemyTimer:null }; } catch(_){ }
             try { overlay.classList.add('hidden'); } catch(_){}
-            // Return to ready state; user can press START to begin anew
-            try { elInput.disabled = true; btnStart.disabled = false; btnRestart.disabled = false; } catch(_){}
+            // Fully reset including character and return to selection
+            resetToCharacterSelect();
           });
 
           // Update counts and button state
@@ -720,7 +767,7 @@
     if (!window.__battle.player) { openCharSelect(); return; }
     startGame();
   });
-  btnRestart.addEventListener('click', restartGame);
+  btnRestart.addEventListener('click', resetGameHard);
   // Legacy restart button (hidden in overlay when continue UI is built)
   if (btnGoRestart) btnGoRestart.addEventListener('click', restartGame);
   if (btnCloseResults) btnCloseResults.addEventListener('click', restartGame);
